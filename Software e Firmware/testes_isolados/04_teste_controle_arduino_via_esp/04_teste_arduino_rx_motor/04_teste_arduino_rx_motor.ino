@@ -1,15 +1,15 @@
 #include <SoftwareSerial.h>
 
-// RX=A4, TX=A5
-SoftwareSerial espSerial(A4, A5); 
+// RX=A5, TX=A4
+SoftwareSerial espSerial(A5, A4); 
 
 // Pinos Shield CNC v3 para Uno
 #define EN_PIN 8
 #define M4_PUL 2
-#define M4_DIR 3
-#define M5_PUL 4
-#define M5_DIR 5
-#define M6_PUL 6
+#define M4_DIR 5
+#define M5_PUL 3
+#define M5_DIR 6
+#define M6_PUL 4
 #define M6_DIR 7
 
 void setup() {
@@ -17,8 +17,8 @@ void setup() {
   delay(500);
   Serial.println("\n[SISTEMA] Iniciando Teste 4: Arduino Escravo RX Motores");
   
-  espSerial.begin(115200); // Conexao com o ESP
-  Serial.println("[SISTEMA] Conexao SoftwareSerial instanciada em A4/A5");
+  espSerial.begin(9600); // Conexao com o ESP
+  Serial.println("[SISTEMA] Conexao SoftwareSerial instanciada em A5/A4 (9600 bps)");
 
   pinMode(EN_PIN, OUTPUT);
   digitalWrite(EN_PIN, LOW); // Ativa os drivers CNC
@@ -48,7 +48,9 @@ void loop() {
         int steps = cmd.substring(c2+1, c3).toInt();
         int dir = cmd.substring(c3+1).toInt();
         
-        Serial.printf("[PARSER] Sucesso! Motor Alvo: %d | Passos Requeridos: %d | Sentido: %d\n", m, steps, dir);
+        Serial.print("[PARSER] Sucesso! Motor Alvo: "); Serial.print(m);
+        Serial.print(" | Passos Requeridos: "); Serial.print(steps);
+        Serial.print(" | Sentido: "); Serial.println(dir);
 
         int actPul = M4_PUL, actDir = M4_DIR;
         if(m == 5) { actPul = M5_PUL; actDir = M5_DIR; }

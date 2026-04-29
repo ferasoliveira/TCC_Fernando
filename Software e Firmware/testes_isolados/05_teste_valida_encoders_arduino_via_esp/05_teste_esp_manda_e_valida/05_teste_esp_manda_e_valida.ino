@@ -1,8 +1,8 @@
 #include <WiFi.h>
 #include <WebServer.h>
 
-#define RX_PIN 19
-#define TX_PIN 20
+#define RX_PIN 16
+#define TX_PIN 17
 
 WebServer server(80);
 
@@ -47,7 +47,7 @@ void handleAsk() {
     
     Serial.printf("[COMANDO] WEB quer enviar ordem: Motor %d, %d passos, sentido %d\n", m, s, d);
     Serial.println("[TX] Transformando em TEST_ENC e disparando via UART 19/20...");
-    Serial1.printf("TEST_ENC:%d,%d,%d\n", m, s, d);
+    Serial2.printf("TEST_ENC:%d,%d,%d\n", m, s, d);
     lastResult = "Aguardando resposta do Arduino para M" + String(m) + "... (Atualize a aba em breve)";
   } else {
     Serial.println("[WEB] Formato invalido no forms de requisicao. Sem dados enviados.");
@@ -61,8 +61,8 @@ void setup() {
   delay(500);
   Serial.println("\n[SISTEMA] Iniciando Teste 5: Feedback Loop Hibrido (ESP Manda, Uno Verifica)");
   
-  Serial1.begin(115200, SERIAL_8N1, RX_PIN, TX_PIN); 
-  Serial.printf("[SISTEMA] Link Serial RX=%d, TX=%d Pronto.\n", RX_PIN, TX_PIN);
+  Serial2.begin(9600, SERIAL_8N1, RX_PIN, TX_PIN); 
+  Serial.printf("[SISTEMA] Link Serial RX=%d, TX=%d Pronto a 9600bps.\n", RX_PIN, TX_PIN);
 
   WiFi.softAP(ssid, password);
   Serial.printf("[WIFI] ESP Access point %s esta rodando livre no IP ", ssid);
@@ -78,8 +78,8 @@ void loop() {
   server.handleClient();
   
   // Escuta se o Uno terminou o evento no alem e mandou feedBack 
-  while (Serial1.available()) {
-    String msg = Serial1.readStringUntil('\n');
+  while (Serial2.available()) {
+    String msg = Serial2.readStringUntil('\n');
     msg.trim();
     if (msg.length() > 0) {
       Serial.println("[RX] <- Dados vindos pela porta UART (19/20): " + msg);

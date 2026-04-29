@@ -1,14 +1,14 @@
 #include <SoftwareSerial.h>
 
-// RX do Esp = A4, TX = A5 (então pro Arduino RX=A4, TX=A5)
-SoftwareSerial espSerial(A4, A5); // RX, TX
+// RX do Esp = A4, TX do Esp = A5 (então pro Arduino RX=A5, TX=A4 para cruzar)
+SoftwareSerial espSerial(A5, A4); // RX, TX
 
 unsigned long lastPingTime = 0;
 
 void setup() {
   Serial.begin(115200);   // Log no PC
   delay(500);
-  espSerial.begin(115200); // Comunicacao c/ ESP
+  espSerial.begin(9600); // Comunicacao c/ ESP
   
   Serial.println("\n=====================================");
   Serial.println("   TESTE 3: ARDUINO SERIAL (A4/A5)   ");

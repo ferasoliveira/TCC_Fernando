@@ -80,7 +80,7 @@ void handleMove() {
       Serial.println("[CONTROLE] Destino REMOTO interpretado. Estruturando e enviando pacote Serial para o Arduino Escravo.");
       int m = t.substring(1).toInt();
       // Envia pacote serial pro arduino
-      Serial1.printf("MOVE_REMOTO:%d,%d,%d\n", m, steps, dir);
+      Serial2.printf("MOVE_REMOTO:%d,%d,%d\n", m, steps, dir);
       Serial.printf("[TX] Pacote serial enviado: (MOVE_REMOTO:%d,%d,%d\\n)\n", m, steps, dir);
     }
   } else {
@@ -95,8 +95,8 @@ void setup() {
   delay(1000);
   Serial.println("\n[SISTEMA] Iniciando Teste 4: Roteamento ESP(Web) -> Motores(Local vs Remoto)");
   
-  Serial1.begin(115200, SERIAL_8N1, RX_PIN, TX_PIN); // Arduino
-  Serial.printf("[SISTEMA] Serial1 configurada em RX=%d TX=%d\n", RX_PIN, TX_PIN);
+  Serial2.begin(9600, SERIAL_8N1, RX_PIN, TX_PIN); // Arduino
+  Serial.printf("[SISTEMA] Serial2 configurada em RX=%d TX=%d a 9600bps\n", RX_PIN, TX_PIN);
 
   pinMode(M1_PUL, OUTPUT); pinMode(M1_DIR, OUTPUT);
   pinMode(M2_PUL, OUTPUT); pinMode(M2_DIR, OUTPUT);
