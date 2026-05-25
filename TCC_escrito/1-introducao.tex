@@ -1,0 +1,62 @@
+\chapter{Introdução}
+\label{cap:introducao}
+
+A robótica de manipulação constitui um dos pilares da automação industrial contemporânea, desempenhando um papel crucial na otimização de processos de manufatura, na garantia de repetibilidade operacional e na execução de tarefas em ambientes de alta periculosidade \cite{siciliano2009robotics}. Tradicionalmente, manipuladores robóticos de alta precisão e múltiplos graus de liberdade (do inglês, \textit{Degrees of Freedom} - DOF), tais como os robôs antropomórficos com cinemática de seis eixos, requerem investimentos vultosos de capital. Essa barreira econômica limita o acesso de pequenas indústrias, laboratórios de pesquisa acadêmica e instituições de ensino profissionalizante a plataformas experimentais avançadas, dificultando a difusão do conhecimento prático e o desenvolvimento científico nessa área \cite{craig2005introduction}.
+
+Nos últimos anos, a emergência de tecnologias de manufatura aditiva, notadamente a impressão tridimensional (3D), e a popularização de ecossistemas eletrônicos de código aberto revolucionaram a viabilidade econômica do desenvolvimento de sistemas mecatrônicos \cite{okter2025ros}. O surgimento de manipuladores robóticos de baixo custo abriu caminho para uma ampla gama de aplicações educacionais e de pesquisa de pequena escala. Entretanto, a redução nos custos de hardware mecânico e estrutural transfere a complexidade do projeto para o domínio do controle em tempo real e da instrumentação embarcada. Projetar um sistema estável, preciso e interativo com hardware financeiramente acessível constitui um desafio tecnológico complexo, no qual as restrições computacionais de microcontroladores populares limitam severamente a dinâmica operacional e a segurança física do manipulador \cite{marton2009distributed}.
+
+Neste contexto, esta pesquisa aborda o desenvolvimento e a validação de uma arquitetura de controle distribuída aplicada ao braço robótico \textbf{EB15}, um manipulador antropomórfico articulado com 6 graus de liberdade. O projeto visa mitigar os gargalos clássicos de processamento em unidades computacionais de baixo custo por meio do particionamento de tarefas em tempo real, integrando instrumentação em malha fechada por encoders magnéticos absolutos e interfaces modernas de conectividade sem fio.
+
+\section{Problematização}
+\label{sec:problematizacao}
+
+O controle dinâmico e cinemático de um manipulador robótico de 6 graus de liberdade é intrinsecamente exigente sob a perspectiva computacional. Para viabilizar trajetórias suaves no efetuador final, o sistema deve executar rotinas periódicas de cinemática inversa, interpolações e planejamento de trajetória global de alta velocidade \cite{lynch2017modern}. Além disso, a conversão de trajetórias teóricas em deslocamento físico demanda a geração contínua e determinística de trens de pulsos de temporização precisa para cada um dos motores de passo, exigindo frequências de interrupção na casa de dezenas de quilohertz, onde qualquer variação temporal (\textit{jitter}) degrada diretamente a suavidade do movimento mecânico e introduz ressonâncias destrutivas \cite{lewin2023scurve}.
+
+A problematização acentua-se drasticamente ao incorporar conectividade de rede sem fio e instrumentação em malha fechada na mesma unidade central de processamento (CPU). Em aplicações modernas, os robôs devem suportar interfaces gráficas web para teleoperação em modo \textit{Jog}, configuração de parâmetros em tempo de execução e conexões via protocolos de troca de dados como o RTDE (do inglês, \textit{Real-Time Data Exchange}) para integração com computadores industriais \cite{kowsalyadevi2025comprehensive}. Ao mesmo tempo, para mitigar a baixa rigidez estrutural e folgas mecânicas inerentes a componentes impressos em 3D, a leitura periódica de sensores angulares locais nas juntas --- como os encoders magnéticos absolutos AS5600 via barramento de comunicação $I^2C$ --- torna-se indispensável \cite{tang2022research}.
+
+A execução simultânea de todas essas tarefas --- a geração determinística de pulsos de alta frequência, a varredura e o tratamento de colisões do barramento $I^2C$ para os encoders, e o processamento de pilhas de rede \textit{Wi-Fi} de alta latência e indeterminação temporal --- sobrecarrega os microcontroladores de baixo custo de CPU única ou mesmo dual-core. O processamento concorrente da pilha de rede e do servidor web gera latências imprevisíveis no laço crítico de controle de posição, causando atrasos sistemáticos na emissão de pulsos de passos para os drivers e falhas eventuais de comunicação na leitura dos sensores de juntas \cite{marton2009distributed}. Consequentemente, o braço robótico apresenta movimentos espasmódicos, perda sistemática de passo mecânico e incapacidade de manter o sincronismo de junta necessário para executar trajetórias cartesianas contínuas, comprometendo totalmente a precisão operacional e a integridade mecatrônica do protótipo.
+
+\section{Justificativa}
+\label{sec:justificativa}
+
+Para solucionar a sobrecarga computacional descrita e preservar a característica de baixo custo do projeto mecatrônico, este trabalho justifica a adoção de uma arquitetura de controle distribuída mestre-escravo \cite{marton2009distributed}. Em vez de recorrer a computadores industriais ou processadores embarcados sofisticados de custo proibitivo, o sistema divide a complexidade algorítmica e operacional entre dois microcontroladores populares e acessíveis: o ESP32 S3, operando como controlador mestre, e o Arduino Uno, atuando como controlador auxiliar escravo.
+
+A divisão física das tarefas é estruturada de forma a isolar as atividades assíncronas de conectividade das rotinas de controle de tempo real crítico \cite{siciliano2016springer}. O processador mestre ESP32 S3, dotado de arquitetura dual-core de alta frequência e periféricos de rede integrados, assume a coordenação global. Suas responsabilidades incluem a hospedagem do servidor web interno da interface do usuário (com suporte a modos \textit{Access Point} e \textit{Station}), o gerenciamento de requisições RTDE e o cálculo do planejamento de trajetórias complexas baseadas em curvas de aceleração suave \cite{kowsalyadevi2025comprehensive}. Além disso, o ESP32 S3 gera os pulsos para os drivers robustos TB6600 que movimentam as três juntas inferiores da base (J1, J2 e J3), as quais suportam a carga mecânica primária do braço.
+
+Por outro lado, o Arduino Uno atua exclusivamente na execução determinística de tarefas de baixo nível para as juntas superiores do punho (J4, J5 e J6), eliminando interferências na temporização mecânica de ponta causada por tarefas de rede assíncronas do mestre. A comunicação inter-processador ocorre de forma assíncrona por um canal serial UART otimizado, onde o mestre transmite unicamente os parâmetros cinemáticos pré-calculados. Para evitar qualquer latência de transmissão no início físico do movimento das seis juntas, o sistema adota um handshake de confirmação UART seguido pelo disparo de um sinal digital limpo (\textit{hardware trigger}) direto \cite{nissov2025simultaneous}. Esse trigger de sincronismo físico garante o alinhamento simultâneo na inicialização física de ambos os laços de controle a nível de microssegundo.
+
+Ademais, a inclusão de sensores magnéticos AS5600 de malha fechada via barramento $I^2C$ em todas as seis juntas permite o monitoramento e correção em tempo real contra perdas de passo e instabilidades \cite{tang2022research}. Desta forma, a arquitetura proposta alia a robustez e conectividade de sistemas avançados à economia inerente a plataformas educacionais, criando uma metodologia eficiente e reprodutível para o desenvolvimento científico de robôs manipuladores de baixo custo estáveis \cite{okter2025ros}.
+
+\section{Objetivos}
+\label{sec:objetivos}
+
+\subsection{Objetivo Geral}
+\label{subsec:objetivo_geral}
+
+Desenvolver, implementar e validar experimentalmente um firmware baseado em arquitetura de controle distribuída mestre-escravo para braços robóticos de 6 graus de liberdade de baixo custo, utilizando os microcontroladores ESP32 S3 e Arduino Uno, de modo a mitigar as perdas de determinismo temporal decorrentes do processamento simultâneo de conectividade e malhas fechadas de sensoriamento.
+
+\subsection{Objetivos Específicos}
+\label{subsec:objetivos_especificos}
+
+Para viabilizar o cumprimento do objetivo geral, estabelecem-se as seguintes metas específicas:
+
+\begin{itemize}
+    \item Projetar e implementar a distribuição de tarefas computacionais entre o processador mestre (ESP32 S3) e o processador escravo (Arduino Uno), definindo responsabilidades claras de cinemática direta/inversa, planejamento de trajetórias globais e controle local de atuadores.
+    \item Desenvolver um protocolo de comunicação serial UART customizado com carga útil de baixíssimo payload para transmissão rápida de parâmetros cinemáticos entre o ESP32 S3 e o Arduino Uno, incorporando lógica de \textit{handshake} de pré-configuração.
+    \item Implementar e otimizar um mecanismo de sincronização baseado em \textit{trigger} digital físico dedicado por hardware, garantindo a partida simultânea e síncrona de movimento de todas as juntas J1 a J6 do braço robótico EB15 a nível de sub-milissegundo.
+    \item Integrar a instrumentação e leitura em tempo real dos encoders magnéticos AS5600 via canais de comunicação $I^2C$ locais em ambas as unidades de processamento, permitindo a consolidação do feedback posicional e a segurança dinâmica das juntas.
+    \item Validar a arquitetura desenvolvida sob o aspecto operacional no protótipo físico EB15 impresso em 3D, mensurando qualitativa e quantitativamente a acurácia cinemática, o \textit{jitter} de controle das interrupções de geração de passos e o tempo de resposta dinâmico das trajetórias cartesianas.
+\end{itemize}
+
+\section{Estrutura do Trabalho}
+\label{sec:estrutura_do_trabalho}
+
+Para apresentar as etapas de modelagem, desenvolvimento e validação do sistema distribuído proposto de forma clara e fluida, este trabalho divide-se em capítulos estruturados da seguinte maneira:
+
+O \textbf{Capítulo 2 (Referencial Teórico)} aborda os fundamentos conceituais essenciais à compreensão matemática e física do manipulador. Serão detalhadas as modelagens cinemáticas direta e inversa baseadas na teoria geométrica e na formulação de transformação de matrizes homogêneas \cite{lynch2017modern}. Também são discutidos os conceitos teóricos de planejamento de trajetória por curvas polinomiais suaves e perfis de aceleração Curva-S \cite{lewin2023scurve}, a caracterização de motores de passo acionados em malha fechada via sensores magnéticos \cite{tang2022research}, e os conceitos de redes de comunicação embarcadas em tempo real sob arquitetura distribuída \cite{siciliano2016springer}.
+
+O \textbf{Capítulo 3 (Metodologia e Desenvolvimento)} descreve as etapas de engenharia eletrônica e de software aplicadas ao projeto do protótipo EB15. Apresenta-se o dimensionamento do hardware físico, os esquemas de interconexão serial UART, as conexões de potência dos drivers TB6600 e CNC Shield, e a disposição dos sensores absolutos AS5600. A nível de software, expõe-se o fluxo de operação concorrente, o algoritmo de recepção e processamento RTDE, a distribuição lógica de trajetórias e o particionamento do firmware mestre (ESP32 S3) e escravo (Arduino Uno), incluindo os estados lógicos de handshake e disparo de trigger digital físico.
+
+O \textbf{Capítulo 4 (Resultados e Discussões)} expõe os testes experimentais conduzidos para a validação da arquitetura distribuída. São apresentadas análises gráficas do jitter de geração de pulsos sob cargas de rede intensas, testes de estabilidade da interface web Wi-Fi sob tráfego RTDE concorrente, medições quantitativas de desalinhamento posicional dinâmico entre juntas superiores e inferiores, e a compensação mecatrônica obtida com a malha fechada dos encoders AS5600.
+
+Por fim, o \textbf{Capítulo 5 (Considerações Finais)} resume as principais conclusões obtidas na pesquisa, avaliando o cumprimento dos objetivos traçados e identificando as limitações operacionais encontradas no protótipo de baixo custo. Sugerem-se também propostas de trabalhos futuros, detalhando extensões de controle e oportunidades de aplicação no âmbito da automação avançada com hardware acessível.

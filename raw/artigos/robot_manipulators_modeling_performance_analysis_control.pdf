@@ -1,0 +1,67 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> >>
+endobj
+4 0 obj
+<< /Length 1955 >>
+stream
+BT
+/F1 10 Tf
+12 TL
+50 780 Td
+(Book Title: Robot Manipulators: Modeling, Performance Analysis and Control) Tj T*
+(Authors: Etienne Dombre, Wisama Khalil) Tj T*
+(Year: 2007) Tj T*
+(Publisher: ISTE Ltd / John Wiley & Sons) Tj T*
+(ISBN/Link: 9781848210356) Tj T*
+T*
+(=== BOOK SUMMARY ===) Tj T*
+(This book is a foundational academic reference for modeling serial and parallel robot) Tj T*
+(manipulators. It provides highly detailed methods for deriving geometric, kinematic,) Tj T*
+(and dynamic models, with a strong focus on parameter identification, stiffness) Tj T*
+(analysis, and closed-loop control of complex robotic architectures.) Tj T*
+T*
+(=== CHAPTERS & KEY SECTIONS ===) Tj T*
+(- Chapter 1: Geometric Modeling of Serial Robots \(D-H parameters and Modified D-H) Tj T*
+(parameters\)) Tj T*
+(- Chapter 2: Geometric Modeling of Parallel Robots) Tj T*
+(- Chapter 3: Kinematic Modeling of Serial Robots) Tj T*
+(- Chapter 4: Kinematic Modeling of Parallel Robots) Tj T*
+(- Chapter 5: Dynamic Modeling of Serial Robots \(Newton-Euler and Lagrange) Tj T*
+(formulations\)) Tj T*
+(- Chapter 6: Dynamic Modeling of Parallel Robots) Tj T*
+(- Chapter 7: Robot Parameter Identification \(Inertial parameters and friction\)) Tj T*
+(- Chapter 8: Stiffness and Performance Analysis of Robotic Arms) Tj T*
+(- Chapter 9: Motion Control of Robot Manipulators \(Joint space and operational space) Tj T*
+(control\)) Tj T*
+T*
+(=== HOW TO ACCESS THE FULL TEXT ===) Tj T*
+(This book is a copyrighted commercial publication.) Tj T*
+(To download the full PDF:) Tj T*
+(1. Access the Academia.edu Open Hosting Portal link:) Tj T*
+(https://www.academia.edu/31648256/Etienne_Dombre_Wisama_Khalil_Robot_Manipulators_Modeling_Performance_Analysis_and_Control) Tj T*
+(2. Log in using your academic credentials or OAuth account.) Tj T*
+(3. Download the full text shared by the authors.) Tj T*
+(Alternatively, access via Wiley Online Library using your institution's VPN.) Tj T*
+T*
+ET
+endstream
+endobj
+xref
+0 5
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000002245 00000 n 
+trailer
+<< /Size 5 /Root 1 0 R >>
+startxref
+2305
+%%EOF
