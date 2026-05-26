@@ -1,0 +1,218 @@
+\chapter{Referencial Teórico}
+\label{cap:referencial_teorico}
+
+O desenvolvimento de manipuladores robóticos antropomórficos de múltiplos graus de liberdade --- do inglês, \textit{Degrees of Freedom} (DOF) --- constitui uma área clássica de estudo mecatrônico, na qual a complexidade reside na integração de conceitos mecânicos, eletroeletrônicos e de computação em tempo real. A transição de teorias matemáticas abstratas para a movimentação suave e precisa de um robô físico de baixo custo, como o braço robótico \textbf{EB15}, exige o domínio de formulações geométricas rigorosas, teorias de planejamento de trajetórias contínuas, dinâmica de acionamento em malha fechada e arquiteturas computacionais capazes de preservar a precisão temporal \cite{siciliano2016springer}. 
+
+Neste sentido, este capítulo apresenta os fundamentos teóricos necessários para embasar a concepção estrutural e a arquitetura lógica distribuída do braço robótico de 6 eixos. São discutidas as representações matemáticas da cinemática direta e inversa de manipuladores seriais, os perfis de velocidade para planejamento contínuo de trajetórias cartesianas, as estratégias de sensoriamento e controle PID (\textit{Proporcional-Integral-Derivativo}) em malha fechada de motores de passo, e, finalmente, as teorias e topologias de comunicação distribuída e sincronização determinística por hardware que fundamentam a arquitetura mestre-escravo do protótipo desenvolvido.
+
+\section{Cinemática de Manipuladores Robóticos}
+\label{sec:cinematica_manipuladores}
+
+A cinemática estuda o movimento de corpos rígidos no espaço tridimensional sem considerar as forças ou torques que os originam. No escopo da robótica de manipulação, ela estabelece as relações matemáticas cruciais entre as coordenadas angulares das articulações (espaço das juntas) e a posição e orientação física do efetuador final no ambiente tridimensional (espaço cartesiano ou operacional) \cite{craig2005introduction}.
+
+\subsection{Representação de Posição e Orientação no Espaço Tridimensional}
+\label{subsec:representacao_espacial}
+
+Para mapear a cinemática de um manipulador articulado com múltiplos elos rígidos interconectados por juntas rotativas, é necessário associar um sistema de coordenadas local (\textit{frame}) a cada componente estrutural. A posição física e a orientação rotacional de um referencial em relação a outro são completamente descritas por meio de uma matriz de transformação homogênea $T$, pertencente ao grupo especial euclidiano $SE(3)$, definida matematicamente conforme a Equação \ref{eq:matriz_transformacao} \cite{lynch2017modern}:
+
+\begin{equation}
+\label{eq:matriz_transformacao}
+T = \begin{bmatrix}
+R & p \\
+\mathbf{0}_{1 \times 3} & 1
+\end{bmatrix} = \begin{bmatrix}
+r_{11} & r_{12} & r_{13} & p_x \\
+r_{21} & r_{22} & r_{23} & p_y \\
+r_{31} & r_{32} & r_{33} & p_z \\
+0 & 0 & 0 & 1
+\end{bmatrix} \in SE(3)
+\end{equation}
+
+Na Equação \ref{eq:matriz_transformacao}, a submatriz $R \in \mathbb{R}^{3 \times 3}$ é a matriz de rotação ortogonal que pertence ao grupo especial ortogonal $SO(3)$ ($R^T R = I$ e $\det(R) = 1$), cujas colunas representam os vetores unitários dos eixos do referencial móvel projetados no referencial de base. O vetor coluna $p = [p_x, p_y, p_z]^T \in \mathbb{R}^3$ indica a posição cartesiana da origem do referencial móvel no espaço. O uso de coordenadas homogêneas unifica as operações de translação e rotação em uma única multiplicação matricial síncrona, simplificando o encadeamento geométrico de elos em cadeias cinemáticas abertas \cite{craig2005introduction}.
+
+\subsection{Cinemática Direta}
+\label{subsec:cinematica_direta}
+
+A cinemática direta consiste na determinação da posição e da orientação do efetuador final do manipulador a partir do conhecimento prévio dos ângulos das suas juntas e das dimensões físicas dos seus elos rígidos. A metodologia clássica para a modelagem geométrica sistemática dessa cadeia de transformações é a convenção clássica de parâmetros de Denavit-Hartenberg (D-H), proposta originalmente em 1955 \cite{craig2005introduction}.
+
+Nesta representação, quatro parâmetros geométricos --- comprimento do elo ($a_i$), torção do elo ($\alpha_i$), distância da junta ($d_i$) e ângulo da junta ($\theta_i$) --- definem a translação e rotação relativas entre eixos consecutivos de articulação $i-1$ e $i$. A matriz de transformação homogênea de junta individual $A_i$, que mapeia o sistema de coordenadas $i$ de volta para o sistema $i-1$, é expressa de forma padrão pela Equação \ref{eq:dh_transform} \cite{siciliano2009robotics}:
+
+\begin{equation}
+\label{eq:dh_transform}
+A_i(\theta_i) = \begin{bmatrix}
+\cos\theta_i & -\sin\theta_i\cos\alpha_i & \sin\theta_i\sin\alpha_i & a_i\cos\theta_i \\
+\sin\theta_i & \cos\theta_i\cos\alpha_i & -\cos\theta_i\sin\alpha_i & a_i\sin\theta_i \\
+0 & \sin\alpha_i & \cos\alpha_i & d_i \\
+0 & 0 & 0 & 1
+\end{bmatrix}
+\end{equation}
+
+Para um manipulador robótico antropomórfico serial de 6 eixos, a cinemática direta global é formulada a partir do produto progressivo ordenado das seis matrizes de junta individuais $A_i$. A matriz resultante $T_{base}^{efet}(\theta_1, \theta_2, \theta_3, \theta_4, \theta_5, \theta_6)$, dada pela Equação \ref{eq:direta_global}, fornece a descrição espacial completa do efetuador em relação à base do braço robótico \cite{siciliano2016springer}:
+
+\begin{equation}
+\label{eq:direta_global}
+T_{base}^{efet} = A_1(\theta_1) \cdot A_2(\theta_2) \cdot A_3(\theta_3) \cdot A_4(\theta_4) \cdot A_5(\theta_5) \cdot A_6(\theta_6)
+\end{equation}
+
+\subsection{Cinemática Inversa Analítica e Eficiência Computacional}
+\label{subsec:cinematica_inversa}
+
+A cinemática inversa determina as variáveis angulares das juntas $(\theta_1, \theta_2, \theta_3, \theta_4, \theta_5, \theta_6)$ necessárias para posicionar e orientar o efetuador final em uma coordenada de destino cartesiana $T_{base}^{efet}$ dada. Diferentemente da cinemática direta, a resolução da cinemática inversa apresenta complexidade matemática elevada decorrente da não linearidade intrínseca das equações trigonométricas acopladas e da existência potencial de múltiplas soluções geométricas para o mesmo ponto físico (ambiguidade de postura) ou singularidades matemáticas \cite{lynch2017modern}.
+
+Existem dois caminhos metodológicos principais para solucionar esse problema: métodos numéricos iterativos (baseados na inversão do Jacobiano geométrico) e soluções analíticas em forma fechada (\textit{closed-form solutions}). Embora os métodos numéricos sejam genéricos e adaptáveis a qualquer topologia de robô, eles exigem dezenas de iterações computacionais baseadas em aritmética de ponto flutuante de dupla precisão por cálculo, o que gera uma carga de processamento proibitiva e indeterminismo temporal em microcontroladores de baixo custo com recursos computacionais escassos \cite{kalaycioglu2024analytical}.
+
+Para viabilizar a execução em tempo real na CPU (\textit{Central Processing Unit}) de controle do braço EB15, adota-se a solução analítica fechada baseada no desacoplamento cinemático espacial. Essa abordagem é aplicável a manipuladores seriais de 6 eixos que satisfazem o Critério de Pieper, o qual exige que os três eixos das juntas do punho (J4, J5 e J6) se interceptem em um único ponto comum, caracterizando um punho esférico \cite{craig2005introduction}. 
+
+Esse desacoplamento permite cindir o problema em duas etapas geométricas independentes:
+\begin{enumerate}
+    \item \textbf{Posicionamento da Base (Juntas J1, J2 e J3):} O centro geométrico do punho esférico (denotado como centro do punho ou \textit{Wrist Center} --- $p_{wc}$) é computado diretamente a partir da translação do efetuador final $p_{ee}$ retrocedendo ao longo do eixo da última junta por uma distância $d_6$, conforme a Equação \ref{eq:wrist_center} \cite{ahmed2022inverse}:
+    \begin{equation}
+    \label{eq:wrist_center}
+    p_{wc} = p_{ee} - d_6 R_{ee} \begin{bmatrix} 0 \\ 0 \\ 1 \end{bmatrix}
+    \end{equation}
+    Como as coordenadas cartesianas do ponto $p_{wc} = [x_{wc}, y_{wc}, z_{wc}]^T$ são independentes das rotações das juntas superiores, os ângulos geométricos da base ($\theta_1, \theta_2, \theta_3$) são calculados de forma direta por relações trigonométricas planas e a lei dos cossenos aplicada aos membros estruturais J2 e J3.
+    
+    \item \textbf{Orientação do Punho (Juntas J4, J5 e J6):} Uma vez obtidos os ângulos das juntas da base, a matriz de rotação acumulada dos três primeiros elos $R_{base}^3(\theta_1, \theta_2, \theta_3)$ torna-se conhecida. A matriz de rotação residual que deve ser executada exclusivamente pelo punho esférico $R_3^6$ é extraída por manipulação matricial conforme a Equação \ref{eq:wrist_orientation} \cite{craig2005introduction}:
+    \begin{equation}
+    \label{eq:wrist_orientation}
+    R_3^6(\theta_4, \theta_5, \theta_6) = [R_{base}^3(\theta_1, \theta_2, \theta_3)]^T \cdot R_{ee}
+    \end{equation}
+    Como $R_3^6$ equivale ao encadeamento rotacional das três juntas superiores, as variáveis angulares finais ($\theta_4, \theta_5, \theta_6$) são calculadas analiticamente a partir da solução clássica de ângulos de Euler tipo Z-Y-Z aplicada aos elementos individuais da matriz de rotação residual \cite{siciliano2009robotics}. 
+\end{enumerate}
+
+Essa divisão elimina a necessidade de buscas numéricas, reduzindo o cálculo cinemático completo a um pequeno conjunto de funções algébricas elementares executáveis em microssegundos no núcleo do microcontrolador mestre, sem comprometer o laço determinístico de temporização \cite{kalaycioglu2024analytical}.
+
+\section{Planejamento de Trajetória e Perfis de Movimento}
+\label{sec:planejamento_trajetoria}
+
+O planejamento de trajetória define a evolução temporal ordenada da posição, velocidade e aceleração do manipulador robótico para deslocar o efetuador de um ponto inicial até o destino. Um perfil de movimentação suave é indispensável para evitar estresses mecânicos excessivos, desgaste prematuro dos atuadores e oscilações dinâmicas nas juntas do manipulador \cite{siciliano2009robotics}.
+
+\subsection{Espaço Cartesiano versus Espaço das Juntas}
+\label{subsec:espaco_controle}
+
+As trajetórias robóticas podem ser planejadas diretamente no espaço das juntas (onde o tempo de movimentação de cada motor é interpolado de forma independente) ou no espaço cartesiano (onde o robô descreve trajetórias geométricas definidas no espaço físico, como linhas retas ou arcos) \cite{siciliano2009robotics}. 
+
+Embora o planejamento no espaço das juntas apresente menor custo computacional por não exigir cálculos cinemáticos inversos repetitivos ao longo do trajeto, a trajetória do efetuador no espaço físico torna-se curva e imprevisível. Em contrapartida, a interpolação no espaço cartesiano é indispensável para tarefas de alta precisão operacional (como soldagem, montagem ou contornos geométricos), exigindo que a posição e a orientação cartesianas sejam discretizadas em pequenos passos temporais ao longo da reta diretriz e convertidas continuamente para ângulos de juntas via cinemática inversa na taxa de amostragem do controle \cite{lynch2017modern}.
+
+\subsection{Perfis de Velocidade Trapezoidal versus Curva-S}
+\label{subsec:perfis_velocidade}
+
+Para executar qualquer um dos modos de planejamento de movimento, a variação da velocidade longitudinal deve obedecer a um perfil cinemático predefinido. O perfil clássico mais comum na indústria é o perfil de velocidade trapezoidal, caracterizado por três fases de movimento distintas: aceleração linear constante, velocidade máxima estável e desaceleração linear constante \cite{lewin2023scurve}.
+
+Apesar de sua simplicidade de implementação aritmética, o perfil trapezoidal apresenta uma fragilidade física severa nas transições entre as fases de aceleração e velocidade de regime. Nesses instantes de tempo exatos, a aceleração sofre uma transição em degrau (variação instantânea de valor), gerando um pico infinito na derivada da aceleração em relação ao tempo, grandeza física denominada *jerk* ou solavanco, expressa na Equação \ref{eq:jerk_def} \cite{garcia2019new}:
+
+\begin{equation}
+\label{eq:jerk_def}
+J(t) = \frac{da(t)}{dt} = \frac{d^2v(t)}{dt^2} = \frac{d^3s(t)}{dt^3}
+\end{equation}
+
+Fisicamente, a descontinuidade na aceleração e o consequente pulso infinito de \textit{jerk} induzem vibrações mecânicas de alta frequência nas juntas do braço robótico. No contexto de manipuladores desenvolvidos com componentes impressos em filamentos poliméricos 3D (como o braço EB15), cuja rigidez estrutural mecânica é substancialmente menor que a de equivalentes metálicos industriais, esses impactos abruptos excitam as frequências naturais de ressonância da estrutura física do robô. Isso resulta em oscilações estruturais residuais persistentes nas extremidades de posicionamento, fadiga cíclica dos dentes das caixas de engrenagens impressas em 3D, desgaste mecânico acentuado dos mancais de fixação e perda sistemática de sincronismo e passos nos motores \cite{chen2018online}.
+
+Para solucionar essas instabilidades dinâmicas, adota-se o perfil de trajetória em Curva-S (\textit{S-Curve}), baseado em um modelo cinemático composto por sete segmentos de tempo bem definidos. Diferentemente do modelo trapezoidal, o perfil Curva-S limita a taxa de variação da aceleração de forma a manter o \textit{jerk} finito e constante em patamares ajustáveis durante cada fase de transição, suavizando a rampa de aceleração e desaceleração conforme equações polinomiais de terceiro grau no domínio do tempo \cite{rew2021closed}.
+
+O comportamento temporal do perfil Curva-S divide-se nas seguintes fases:
+\begin{enumerate}
+    \item \textbf{Fase 1 (Aceleração com \textit{Jerk} Positivo):} O \textit{jerk} assume um valor constante máximo positivo ($J(t) = J_{max}$), fazendo com que a aceleração cresça linearmente até atingir seu limite projetado.
+    \item \textbf{Fase 2 (Aceleração Constante):} O \textit{jerk} é nulo ($J(t) = 0$), e a aceleração permanece estável no patamar máximo ($a(t) = a_{max}$).
+    \item \textbf{Fase 3 (Aceleração Decrescente com \textit{Jerk} Negativo):} O \textit{jerk} inverte-se para um valor estável negativo ($J(t) = -J_{max}$), desacelerando a taxa de ganho até que a aceleração retorne de forma suave a zero, atingindo a velocidade máxima de translação.
+    \item \textbf{Fase 4 (Velocidade Constante):} O movimento ocorre em regime uniforme de velocidade estável ($v(t) = v_{max}$), com aceleração e \textit{jerk} em zero.
+    \item \textbf{Fase 5 a 7 (Desaceleração Simétrica):} Repete-se o processo simetricamente com inversão das forças dinâmicas para frenagem suave até o repouso absoluto.
+\end{enumerate}
+
+A limitação do \textit{jerk} dinâmico fornecida pelo algoritmo de sete segmentos atenua as forças de inércia impulsivas transmitidas aos mancais poliméricos do EB15, minimizando vibrações nas juntas e proporcionando estabilidade nas trajetórias cartesianas físicas executadas \cite{garcia2019new}.
+
+\section{Acionamento de Juntas e Controle em Malha Fechada}
+\label{sec:acionamento_juntas}
+
+A precisão do efetuador de um braço robótico depende intrinsecamente do comportamento dinâmico individual de cada articulação mecânica sob cargas estáticas e operacionais variáveis. O controle de acionamento das juntas converte a informação cinemática de passos planejada em torque físico estável \cite{siciliano2009robotics}.
+
+\subsection{Dinâmica dos Motores de Passo}
+\label{subsec:motores_passo}
+
+Os motores de passo são atuadores eletromecânicos amplamente utilizados no desenvolvimento de robôs experimentais de baixo custo devido ao seu elevado torque em baixas rotações e simplicidade de acionamento lógico direto. Tradicionalmente operando em malha aberta, estes atuadores dependem da contagem lógica precisa de pulsos enviados a seus drivers para determinar a posição rotacional angular correspondente de forma implícita \cite{ti2020closed}.
+
+No entanto, em aplicações de robótica antropomórfica serial, o motor de passo está sujeito a severos fenômenos dinâmicos degradantes. O torque útil entregue pelo rotor decai de forma hiperbólica com o aumento da velocidade operacional, devido à reatância indutiva dos enrolamentos do estator que limita a corrente física circulante. Adicionalmente, quando o braço se estende no espaço cartesiano, a influência da gravidade gera torques de carga estática e dinâmica altamente variáveis nas juntas da base, culminando frequentemente em perda transitória de passos mecânicos ou no travamento completo do motor (\textit{stalling}), sem que o firmware supervisor de controle centralizado tome conhecimento do desvio geométrico \cite{ti2020closed, jenni2014sensorless}.
+
+\subsection{Instrumentação e Encoders Magnéticos Absolutos}
+\label{subsec:encoders_instrumentacao}
+
+Para mitigar a perda de passo mecânico clássica, a instabilidade e as limitações estruturais inerentes ao baixo custo mecânico do braço, implementa-se um sistema de instrumentação posicional em malha fechada via sensores locais acoplados individualmente a cada junta do robô. A medição posicional absoluta física é executada pelo sensor \textbf{AS5600}, um encoder magnético absoluto de alta velocidade e baixo consumo eletrotécnico \cite{tang2022research}.
+
+O circuito integrado do AS5600 lê a orientação espacial do campo magnético gerado por um pequeno ímã de neodímio diametralmente magnetizado, instalado exatamente no eixo rotativo físico de cada junta do manipulador. A leitura analógica bruta gerada pela matriz de sensores baseada em efeito Hall interna é digitalizada por um conversor analógico-digital interno com resolução de 12 bits, fornecendo uma leitura angular absoluta estável dividida em 4096 posições distintas por rotação completa de 360 graus (resolução angular equivalente de $0,088^{\circ}$). A transmissão dessa telemetria física em tempo real ocorre por meio de barramentos de comunicação serial síncrona I\textsuperscript{2}C (\textit{Inter-Integrated Circuit}) locais dedicados \cite{tang2022research}.
+
+Diferentemente de encoders incrementais ou potenciômetros analógicos lineares acoplados aos eixos internos traseiros dos motores elétricos de passo, a montagem estrutural mecânica dos encoders AS5600 no EB15 é executada diretamente no eixo de rotação de saída de cada junta. Esse posicionamento é crucial, pois permite realizar a leitura física real do ângulo do elo robótico no espaço. Desta forma, a malha de realimentação de controle consegue mensurar e compensar as folgas estruturais mecatrônicas acumuladas (\textit{backlash}) das transmissões físicas e o desgaste cinemático das engrenagens impressas em 3D, garantindo a fidelidade posicional do manipulador mecatrônico \cite{dombre2007robot}.
+
+\subsection{Estratégias de Controle em Malha Fechada e Correção de Posição}
+\label{subsec:estrategias_controle}
+
+A malha fechada de controle atua comparando a posição angular planejada de destino ($\theta_{des}(t)$) com a telemetria física real reportada pelo encoder magnético AS5600 ($\theta_{real}(t)$). O desvio posicional resultante, denominado erro angular instantâneo, é processado pelo algoritmo do firmware local para corrigir dinamicamente a movimentação física da junta \cite{tang2022research}.
+
+O algoritmo clássico empregado para atuar sobre esse erro é o controlador Proporcional-Integral-Derivativo (PID). A modelagem matemática contínua das ações corretivas lineares de controle $u(t)$ geradas sobre a planta do atuador é expressa conforme a Equação \ref{eq:pid_model} \cite{htun2023master}:
+
+\begin{equation}
+\label{eq:pid_model}
+u(t) = K_p e(t) + K_i \int_{0}^{t} e(\tau) d\tau + K_d \frac{de(t)}{dt}
+\end{equation}
+
+Na Equação \ref{eq:pid_model}, $e(t) = \theta_{des}(t) - \theta_{real}(t)$ representa o erro posicional de controle instantâneo, enquanto os termos $K_p$, $K_i$ e $K_d$ são os ganhos sintonizados do controlador proporcional, integral e derivativo, respectivamente. A ação proporcional atua no erro presente, gerando trens de passos corretivos proporcionais à magnitude do desvio. A ação integral acumula o erro no tempo para eliminar desvios estacionários sob carga estática de gravidade. A ação derivativa antecipa a taxa de variação do erro, fornecendo amortecimento dinâmico contra sobressinais de posicionamento (\textit{overshoots}) mecânicos e oscilações \cite{htun2023master}.
+
+Além da linearidade clássica do PID, o controle determinístico posicional em malha fechada para motores de passo do EB15 adota estratégias modernas baseadas na modulação de frequência não linear de passos por meio da função de tangente hiperbólica ($\tanh$), expressa pela Equação \ref{eq:tangente_hiperbolica} \cite{zhou2023frequency}:
+
+\begin{equation}
+\label{eq:tangente_hiperbolica}
+f(e) = f_{max} \cdot \tanh(\gamma \cdot e)
+\end{equation}
+
+Nessa modulação, a frequência de emissão dos pulsos de passo físicos $f(e)$ enviados ao driver é modulada dinamicamente com base no erro de posicionamento instantâneo $e$, onde $f_{max}$ é a frequência limite permitida do motor e $\gamma$ é o ganho de inclinação não linear sintonizado. A não linearidade intrínseca da tangente hiperbólica oferece um comportamento de controle refinado: para grandes erros angulares, a função satura suavemente em $f_{max}$, evitando acelerações impulsivas bruscas que causam perda de passos. À medida que o motor se aproxima da posição desejada e o erro diminui, a tangente hiperbólica entra em sua região de decaimento rápido e suave, atenuando a frequência de forma assintótica a zero sem oscilações estruturais abruptas ou travamento indesejado nas articulações \cite{zhou2023frequency}.
+
+\section{Arquiteturas de Controle Embarcadas e Distribuídas}
+\label{sec:arquiteturas_distribuidas}
+
+A robustez operacional de um robô manipulador antropomórfico serial reside na estabilidade temporal dos laços de temporização internos do sistema. A execução harmônica de algoritmos cinemáticos complexos, o controle dinâmico determinístico e a interface interativa com o usuário demandam o projeto de arquiteturas embarcadas de controle eficientes \cite{siciliano2016springer}.
+
+\subsection{Restrições de Tempo Real e Concorrência Computacional}
+\label{subsec:restricoes_tempo_real}
+
+O controle dinâmico estável de motores de passo exige a geração contínua de trens de pulsos periódicos de temporização determinística precisa de alta velocidade, tipicamente na ordem de dezenas de quilohertz (kHz). Qualquer variação na temporização de emissão física desses pulsos lógicos, caracterizada tecnicamente como \textit{jitter} de temporização, degrada diretamente a suavidade do deslocamento físico dos eixos do robô manipulador, manifestando-se na forma de ressonâncias estruturais induzidas, perda de passo físico e imprecisão operacional \cite{banuelos2026timing}.
+
+Simultaneamente, para as necessidades operacionais de um braço colaborativo moderno de pesquisa acadêmica de baixo custo, o sistema deve fornecer conectividade de rede estável e interfaces de comunicação avançadas. O braço EB15 hospeda internamente um servidor web interativo em sua pilha computacional sem fio com suporte aos modos de operação \textit{Access Point} (AP) e \textit{Station} (STA) para teleoperação em navegador web e disponibiliza endpoints de rede dedicados baseados no protocolo RTDE (\textit{Real-Time Data Exchange}) para integração e telemetria de alta frequência com computadores externos e algoritmos supervisores de planejamento cartesiano global de trajetórias \cite{kowsalyadevi2025comprehensive}.
+
+No entanto, a unificação de todas essas funcionalidades concorrentes sob o processamento centralizado de uma única unidade computacional embarcada gera um conflito severo de determinismo temporal. As pilhas de comunicação de rede sem fio Wi-Fi TCP/IP são algoritmos de natureza essencialmente assíncrona que dependem do sistema operacional de tempo real (como o FreeRTOS) para gerenciar o tráfego concorrente e a retransmissão eventual de pacotes de dados perdidos. O processamento desses protocolos de rede assíncronos no mestre introduz interrupções e atrasos sistemáticos imprevisíveis no fluxo computacional da CPU centralizadora \cite{leng2014improving}. 
+
+Quando a CPU de controle de movimento compartilha recursos físicos com as tarefas assíncronas de rede, as demandas instantâneas de processamento sem fio do servidor web ou do tráfego RTDE geram atrasos aleatórios nas interrupções de geração de passos temporizados por hardware. Esse \textit{jitter} impede o determinismo temporal nos laços paralelos dos motores de passo, culminando em solavancos mecânicos e desvios dinâmicos graves das juntas que invalidam a fidelidade cinemática cartesiana de trajetória de contorno do robô manipulador \cite{marton2009distributed}.
+
+\subsection{Particionamento Mestre-Escravo e Topologia de Controle}
+\label{subsec:particionamento_mestre_escravo}
+
+Para anular completamente os gargalos computacionais e preservar o baixo custo estrutural da plataforma mecatrônica embarcada, este projeto adota uma arquitetura física de controle distribuída mestre-escravo de processamento paralelo e tarefas desacopladas \cite{marton2009distributed}. O sistema é estruturado em dois nós físicos de processamento distintos de tarefas dedicadas e independentes:
+
+\begin{itemize}
+    \item \textbf{Processador Mestre (ESP32 S3):} Dotado de uma CPU central de alto desempenho baseada em arquitetura dual-core Xtensa de 32 bits rodando a 240 MHz com suporte a ponto flutuante por hardware e periféricos integrados de rádio frequência sem fio. O ESP32 S3 assume o papel de supervisor de alto nível e conectividade do sistema robótico. Suas tarefas exclusivas compreendem a gerência da interface sem fio Wi-Fi, a hospedagem e resposta síncrona do servidor web, a recepção e empacotamento dos frames de telemetria RTDE e a resolução contínua dos algoritmos pesados de cinemática inversa cartesiana global e perfis de trajetória Curva-S de 7 segmentos. 
+    
+    A nível de atuação direta, o processador mestre gera a sinalização de pulsos e direção física para os drivers industriais de potência robustos \textbf{TB6600} que comandam os grandes motores de passo bipolares das três primeiras juntas da base do braço (J1, J2 e J3). Estas juntas suportam o peso mecatrônico principal e a inércia estática e dinâmica preliminar do braço robótico, exigindo processamento imediato dos encoders \textbf{AS5600} locais de malha fechada \cite{gomes2026micro}.
+    
+    \item \textbf{Processador Escravo (Arduino Uno):} Baseado no microcontrolador monolítico de arquitetura de 8 bits AVR ATmega328P operando de forma nativa e dedicada a 16 MHz. Desprovido de qualquer sobrecarga de pilhas de rede assíncronas ou conectividade superior de interface de usuário, o Arduino Uno atua estritamente como um co-processador executor de tarefas de tempo real rígidas e baixo nível. 
+    
+    Ele é acoplado fisicamente a uma placa de expansão \textbf{CNC Shield v3.1} que gerencia de forma direta drivers de passo compactos (A4988 ou DRV8825). Sua função principal é gerar trens de passos determinísticos e sem \textit{jitter} de hardware para o acionamento direto das três juntas superiores do punho do manipulador (J4, J5 e J6), realizando em paralelo a varredura local síncrona dos sensores encoders absolutos AS5600 via I\textsuperscript{2}C \cite{okter2025ros}.
+\end{itemize}
+
+O isolamento físico das tarefas de conectividade do ESP32 S3 em relação às tarefas críticas e determinísticas do Arduino Uno assegura que a movimentação final do punho do robô seja suave e imune ao tráfego Wi-Fi, preservando a integridade física e a repetibilidade do manipulador mecatrônico \cite{jleilaty2023distributed}.
+
+\subsection{Protocolo Serial UART e Lógica de Sincronização por Hardware}
+\label{subsec:sincronizacao_hardware}
+
+A divisão de tarefas entre os dois microcontroladores introduz a necessidade de estabelecer uma interface de comunicação inter-processador que garanta a sincronização no tempo. A transferência física de parâmetros geométricos e de controle dinâmico entre o ESP32 S3 e o Arduino Uno é realizada por meio de uma conexão física de comunicação assíncrona serial bidirecional \textbf{UART} (\textit{Universal Asynchronous Receiver-Transmitter}) direta cruzada (TX-RX) otimizada \cite{dong2022comparative}.
+
+Para evitar que a latência e o overhead de formatação do canal serial UART degradem o tempo de resposta dinâmico global do sistema, o projeto adota um protocolo customizado estruturado de dados compactados com reduzido payload. Em vez de enviar coordenadas complexas de trajetória em formato textual XML ou JSON de alto consumo computacional de processamento e parsing, o mestre serializa os dados dinâmicos das juntas superiores (J4, J5 e J6) na forma de frames binários de tamanho fixo estável contendo os valores discretos exatos de passos e direções pré-calculados necessários, protegidos por campos simples de integridade física (\textit{checksum}) de execução linear rápida no Arduino Uno \cite{tanvir2024optimizing, dong2022comparative}.
+
+Contudo, a comunicação puramente assíncrona por UART está inerentemente sujeita a atrasos imprevisíveis de processamento e recepção serial que variam de 1 a 3 milissegundos, causados por latências de interrupções de hardware e preenchimento dos buffers locais das placas \cite{htun2023master}. Se o início físico dos laços de acionamento das juntas J1-J3 (no mestre) e J4-J6 (no escravo) dependesse estritamente do envio ou recepção serial assíncrona do último byte de parâmetro via UART, haveria um desalinhamento temporal de partida dinâmico entre os motores da base e as articulações do punho. Essa dessincronização degradaria a precisão geométrica das trajetórias cartesianas em reta no efetuador final.
+
+Para eliminar por completo esse *jitter* de latência serial no instante crucial de partida, implementa-se um mecanismo de sincronização de duas fases composto por handshake em software seguido pelo disparo físico por hardware (\textit{hardware trigger}) dedicado \cite{nissov2025simultaneous}:
+
+\begin{enumerate}
+    \item \textbf{Fase de Setup e Handshake de Confirmação:} O mestre ESP32 S3 envia os parâmetros da trajetória do punho esférico (J4 a J6) via UART para o Arduino Uno escravo. O Arduino realiza a decodificação imediata do pacote de dados, carrega internamente os registradores locais de passos e velocidades de seus timers de interrupção e retorna um byte simples de controle via UART indicando que o escravo está no estado lógico de pronto (\textit{Ready Handshake}). Durante este intervalo de tempo de configuração preparatório, todos os motores permanecem estáticos, e o ESP32 S3 fica em estado lógico bloqueado, aguardando o aval serial.
+    
+    \item \textbf{Disparo Físico Síncrono (Hardware Trigger):} Ao receber a confirmação UART do escravo, o ESP32 S3 de forma instantânea altera o estado lógico de uma linha digital física de hardware dedicada interconectando um pino de saída de uso geral (GPIO) do ESP32 S3 a um pino de interrupção externa por hardware do Arduino Uno. Esta transição física abrupta de estado elétrico (borda de subida ou descida) propaga-se através do pino a nível de microssegundo, disparando de forma idêntica e paralela as interrupções de hardware locais de partida de trens de pulsos dos motores de passo em ambas as CPUs operacionais \cite{nissov2025simultaneous}.
+\end{enumerate}
+
+Essa abordagem de paralelismo determinístico elimina as incertezas temporais de software inerentes aos barramentos seriais industriais, garantindo a sincronização espacial síncrona na partida simultânea física de todas as 6 juntas do braço robótico antropomórfico EB15 em patamares sub-milissegundo de precisão mecatrônica \cite{nissov2025simultaneous}.
