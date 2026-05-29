@@ -24,8 +24,20 @@ Este workflow é dedicado ao desenvolvimento do firmware distribuído entre o ES
    - Utilizar skills de programação para gerar o firmware do robô (ESP32 S3 e Arduino Uno).
    - Implementar endpoints RTDE e interface web conforme especificado.
 
-5. **Revisão de Código:**
-   - Realizar code review focando em eficiência de processamento e precisão de tempo real na geração de pulsos.
+5. **Testes e Autovalidação de Código:**
+   - Realizar testes próprios e autovalidação dos códigos gerados.
+   - Caso necessário, retornar para a etapa 4 atualizando e corrigindo o código.
 
-6. **Feedback de Entrega:**
-   - Retornar uma explicação simples e objetiva sobre o que foi implementado e como testar.
+6. **Atualização de Lições Aprendidas:**
+   - Atualizar o documento `wiki/lessons-learned.md` com as lições aprendidas ao longo do desenvolvimento.
+   - Identificar problemas esbarrados, dificuldades encontradas ou desperdício de tokens.
+
+7. **Feedback de Entrega:**
+   - Retornar um resumo super objetivo do que foi feito, no seguinte formato:
+     ```text
+     Foi feito:
+     1- X
+     2- X
+     3 - Teste do 2 validado da forma X
+     ...
+     ```

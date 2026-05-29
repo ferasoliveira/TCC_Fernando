@@ -1,0 +1,17 @@
+$date May 28, 2026 $end
+$version Wokwi VCD Generator $end
+$timescale 1ns $end
+$scope module wokwi $end
+$var wire 1 a uno:9 $end
+$var wire 1 b uno:2 $end
+$upscope $end
+$enddefinitions $end
+#0
+1a
+0b
+#10000
+0a
+#10180
+1b
+#11000
+0b

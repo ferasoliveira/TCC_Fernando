@@ -1,0 +1,13 @@
+# Configuração do Wokwi CLI para Testes Automatizados do EB15
+
+[wokwi]
+version = 1
+# Caminhos de saída padrão da compilação do ESP32 S3 Mestre
+firmware = '../../build/esp32_mestre.ino.bin'
+elf = '../../build/esp32_mestre.ino.elf'
+
+# Para simular ambas as placas de forma local:
+# 1. Instale a extensão "Wokwi Simulator" no VS Code.
+# 2. Abra a pasta do projeto.
+# 3. Abra o arquivo 'diagram.json' e pressione F1 -> 'Wokwi: Start Simulator'.
+# A simulação carregará as duas placas rodando os códigos C++ simultaneamente.

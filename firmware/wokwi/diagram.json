@@ -1,0 +1,76 @@
+{
+  "version": 1,
+  "author": "Antigravity",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "board-esp32-s3-devkitc-1",
+      "id": "esp32",
+      "top": -150.0,
+      "left": -200.0,
+      "attrs": {
+        "env": "micropython-20231005-v1.21.0"
+      }
+    },
+    {
+      "type": "board-uno",
+      "id": "uno",
+      "top": 150.0,
+      "left": 100.0,
+      "attrs": {}
+    },
+    {
+      "type": "chip-tca9548a",
+      "id": "tca_mestre",
+      "top": -120.0,
+      "left": 180.0,
+      "attrs": {}
+    },
+    {
+      "type": "chip-tca9548a",
+      "id": "tca_escravo",
+      "top": 180.0,
+      "left": -180.0,
+      "attrs": {}
+    },
+    {
+      "type": "chip-as5600",
+      "id": "encoder_j1",
+      "top": -260.0,
+      "left": 100.0,
+      "attrs": {}
+    },
+    {
+      "type": "chip-as5600",
+      "id": "encoder_j4",
+      "top": 300.0,
+      "left": -100.0,
+      "attrs": {}
+    }
+  ],
+  "connections": [
+    [ "esp32:GND.1", "uno:GND.1", "black", [ "h", "-40", "v", "260" ] ],
+    
+    [ "esp32:TX", "uno:A4", "yellow", [ "h", "20", "v", "320", "h", "120" ] ],
+    [ "esp32:RX", "uno:A5", "green", [ "h", "40", "v", "300", "h", "100" ] ],
+    
+    [ "esp32:4", "uno:9", "blue", [ "h", "-80", "v", "220", "h", "80" ] ],
+    
+    [ "esp32:1", "tca_mestre:SDA", "magenta", [ "h", "60", "v", "10" ] ],
+    [ "esp32:2", "tca_mestre:SCL", "cyan", [ "h", "50", "v", "20" ] ],
+    [ "esp32:3V3.1", "tca_mestre:VCC", "red", [] ],
+    [ "esp32:GND.2", "tca_mestre:GND", "black", [] ],
+    
+    [ "uno:A2", "tca_escravo:SDA", "magenta", [ "h", "-60", "v", "20" ] ],
+    [ "uno:A3", "tca_escravo:SCL", "cyan", [ "h", "-50", "v", "30" ] ],
+    [ "uno:5V", "tca_escravo:VCC", "red", [] ],
+    [ "uno:GND.2", "tca_escravo:GND", "black", [] ],
+    
+    [ "tca_mestre:SD0", "encoder_j1:SDA", "magenta", [] ],
+    [ "tca_mestre:SC0", "encoder_j1:SCL", "cyan", [] ],
+    
+    [ "tca_escravo:SD3", "encoder_j4:SDA", "magenta", [] ],
+    [ "tca_escravo:SC3", "encoder_j4:SCL", "cyan", [] ]
+  ],
+  "dependencies": {}
+}

@@ -1,0 +1,864 @@
+#VRML_SIM R2023b utf8
+
+# Premium 6-DOF physical and kinematic simulation matching ESP32 control laws
+# Redesigned with built-in offline nodes for 100% network-independent loading
+
+WorldInfo {
+  info [
+    "EB15 Robotic Arm Simulation"
+    "Premium 6-DOF physical and kinematic simulation matching ESP32 control laws"
+  ]
+  title "EB15 Robotic Arm Simulation"
+  basicTimeStep 16
+  coordinateSystem "ENU"
+}
+Viewpoint {
+  fieldOfView 0.785398
+  orientation -0.22 0.35 0.90 1.85
+  position 0.8 -0.8 0.6
+}
+
+# Standard built-in background
+Background {
+  skyColor [
+    0.08 0.08 0.1
+  ]
+}
+
+# Standard built-in directional lights for gorgeous PBR shading
+DirectionalLight {
+  ambientIntensity 0.5
+  direction 0.5 -0.5 -1
+  intensity 1.2
+  color 1 1 1
+  castShadows TRUE
+}
+DirectionalLight {
+  ambientIntensity 0.5
+  direction -0.5 0.5 -0.5
+  intensity 0.6
+  color 0.9 0.9 1
+}
+
+# Standard built-in floor box (100% offline)
+Solid {
+  translation 0 0 -0.01
+  name "floor"
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0.15 0.15 0.15
+        roughness 0.8
+      }
+      geometry Box {
+        size 2 2 0.02
+      }
+    }
+  ]
+  boundingObject Box {
+    size 2 2 0.02
+  }
+}
+
+# Integrated Dark Gray Pedestal for the Robot
+Solid {
+  translation 0 0 0.1
+  name "pedestal"
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0.12 0.12 0.12
+        roughness 0.8
+      }
+      geometry Box {
+        size 0.3 0.3 0.2
+      }
+    }
+  ]
+  boundingObject Box {
+    size 0.3 0.3 0.2
+  }
+}
+
+# The EB15 6-DOF Robotic Arm Model - Visual Redesign
+Robot {
+  translation 0 0 0.2
+  rotation 0 0 1 0
+  name "EB15"
+  controller "eb15_controller"
+  supervisor TRUE
+  children [
+    # Base Link (L1 = 150mm height from table mounting)
+    # Includes detailed mounting flange, conical skirt, and bolt slots
+    Solid {
+      name "base_link"
+      children [
+        # Flat Base Flange Plate
+        Transform {
+          translation 0 0 0.005
+          children [
+            Shape {
+              appearance PBRAppearance {
+                baseColor 0.7 0.7 0.7
+                metalness 0.9
+                roughness 0.2
+              }
+              geometry Cylinder {
+                height 0.01
+                radius 0.085
+              }
+            }
+          ]
+        }
+        # Saia Cônica (Conical base skirt)
+        Transform {
+          translation 0 0 0.015
+          children [
+            Shape {
+              appearance PBRAppearance {
+                baseColor 0.3 0.3 0.3
+                roughness 0.75
+              }
+              geometry Cone {
+                height 0.035
+                bottomRadius 0.08
+              }
+            }
+          ]
+        }
+        # 8 Bolt Slots (ranhuras) manually arrayed around the flange
+        Transform {
+          translation 0.08 0 0.005
+          children [ Shape { appearance PBRAppearance { baseColor 0.15 0.15 0.15 roughness 0.8 } geometry Box { size 0.008 0.012 0.012 } } ]
+        }
+        Transform {
+          translation 0.0566 0.0566 0.005
+          children [ Shape { appearance PBRAppearance { baseColor 0.15 0.15 0.15 roughness 0.8 } geometry Box { size 0.008 0.012 0.012 } } ]
+        }
+        Transform {
+          translation 0 0.08 0.005
+          children [ Shape { appearance PBRAppearance { baseColor 0.15 0.15 0.15 roughness 0.8 } geometry Box { size 0.008 0.012 0.012 } } ]
+        }
+        Transform {
+          translation -0.0566 0.0566 0.005
+          children [ Shape { appearance PBRAppearance { baseColor 0.15 0.15 0.15 roughness 0.8 } geometry Box { size 0.008 0.012 0.012 } } ]
+        }
+        Transform {
+          translation -0.08 0 0.005
+          children [ Shape { appearance PBRAppearance { baseColor 0.15 0.15 0.15 roughness 0.8 } geometry Box { size 0.008 0.012 0.012 } } ]
+        }
+        Transform {
+          translation -0.0566 -0.0566 0.005
+          children [ Shape { appearance PBRAppearance { baseColor 0.15 0.15 0.15 roughness 0.8 } geometry Box { size 0.008 0.012 0.012 } } ]
+        }
+        Transform {
+          translation 0 -0.08 0.005
+          children [ Shape { appearance PBRAppearance { baseColor 0.15 0.15 0.15 roughness 0.8 } geometry Box { size 0.008 0.012 0.012 } } ]
+        }
+        Transform {
+          translation 0.0566 -0.0566 0.005
+          children [ Shape { appearance PBRAppearance { baseColor 0.15 0.15 0.15 roughness 0.8 } geometry Box { size 0.008 0.012 0.012 } } ]
+        }
+        # Base Trunk bottom cylinder
+        Transform {
+          translation 0 0 0.06
+          children [
+            Shape {
+              appearance PBRAppearance {
+                baseColor 0.3 0.3 0.3
+                roughness 0.75
+              }
+              geometry Cylinder {
+                height 0.08
+                radius 0.065
+              }
+            }
+          ]
+        }
+        # Transition Sphere between bottom and top cylinders
+        Transform {
+          translation 0 0 0.10
+          children [
+            Shape {
+              appearance PBRAppearance {
+                baseColor 0.3 0.3 0.3
+                roughness 0.75
+              }
+              geometry Sphere {
+                radius 0.065
+              }
+            }
+          ]
+        }
+        # Base Trunk top cylinder
+        Transform {
+          translation 0 0 0.125
+          children [
+            Shape {
+              appearance PBRAppearance {
+                baseColor 0.3 0.3 0.3
+                roughness 0.75
+              }
+              geometry Cylinder {
+                height 0.05
+                radius 0.055
+              }
+            }
+          ]
+        }
+      ]
+    }
+    
+    # Joint 1: Cintura / Base rotation (axis Z_0 vertical)
+    HingeJoint {
+      jointParameters HingeJointParameters {
+        axis 0 0 1
+        anchor 0 0 0.15
+      }
+      device [
+        RotationalMotor {
+          name "motor_j1"
+          minPosition -2.967
+          maxPosition 2.967
+          maxTorque 20
+        }
+        PositionSensor {
+          name "sensor_j1"
+        }
+      ]
+      endPoint Solid {
+        translation 0 0 0.15
+        name "shoulder_link"
+        children [
+          # Shoulder Pivot - Vertical Cylinder
+          Transform {
+            translation 0 0 -0.04
+            children [
+              Shape {
+                appearance PBRAppearance {
+                  baseColor 0.3 0.3 0.3
+                  roughness 0.75
+                }
+                geometry Cylinder {
+                  height 0.08
+                  radius 0.048
+                }
+              }
+            ]
+          }
+          # Transition sphere at J2 pivot center
+          Transform {
+            translation 0 0 0
+            children [
+              Shape {
+                appearance PBRAppearance {
+                  baseColor 0.3 0.3 0.3
+                  roughness 0.75
+                }
+                geometry Sphere {
+                  radius 0.048
+                }
+              }
+            ]
+          }
+          # Shoulder Pivot Joint Housing - Transverse Cylinder along local Y axis
+          Transform {
+            rotation 1 0 0 1.5708
+            children [
+              Shape {
+                appearance PBRAppearance {
+                  baseColor 0.3 0.3 0.3
+                  roughness 0.75
+                }
+                geometry Cylinder {
+                  height 0.1
+                  radius 0.045
+                }
+              }
+            ]
+          }
+          # Domed calota caps on J2 horizontal axis (Y axis, -0.05m and 0.05m)
+          Transform {
+            translation 0 0.05 0
+            scale 1 0.15 1
+            children [
+              Shape {
+                appearance PBRAppearance {
+                  baseColor 0.7 0.7 0.7
+                  metalness 0.9
+                  roughness 0.2
+                }
+                geometry Sphere {
+                  radius 0.046
+                }
+              }
+            ]
+          }
+          Transform {
+            translation 0 -0.05 0
+            scale 1 0.15 1
+            children [
+              Shape {
+                appearance PBRAppearance {
+                  baseColor 0.7 0.7 0.7
+                  metalness 0.9
+                  roughness 0.2
+                }
+                geometry Sphere {
+                  radius 0.046
+                }
+              }
+            ]
+          }
+          
+          # Joint 2: Ombro / Shoulder pitch (axis Y_1 horizontal)
+          HingeJoint {
+            jointParameters HingeJointParameters {
+              axis 0 -1 0
+              anchor 0 0 0
+            }
+            device [
+              RotationalMotor {
+                name "motor_j2"
+                minPosition -0.785
+                maxPosition 3.1415
+                maxTorque 30
+              }
+              PositionSensor {
+                name "sensor_j2"
+              }
+            ]
+            endPoint Solid {
+              name "arm_link"
+              children [
+                # Arm Transition Sphere at shoulder junction
+                Transform {
+                  translation 0.02 0 0
+                  children [
+                    Shape {
+                      appearance PBRAppearance {
+                        baseColor 0.3 0.3 0.3
+                        roughness 0.75
+                      }
+                      geometry Sphere {
+                        radius 0.04
+                      }
+                    }
+                  ]
+                }
+                # Arm Link Tapered Cone Design (L2 = 200mm along local radial/X axis)
+                # Extends pointing along +X, with apex buried inside the elbow housing
+                Transform {
+                  translation 0.09 0 0
+                  rotation 0 0 1 -1.5708
+                  children [
+                    Shape {
+                      appearance PBRAppearance {
+                        baseColor 0.3 0.3 0.3
+                        roughness 0.75
+                      }
+                      geometry Cone {
+                        height 0.20
+                        bottomRadius 0.038
+                      }
+                    }
+                  ]
+                }
+                
+                # Joint 3: Cotovelo / Elbow pitch (axis Y_2 horizontal)
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 -1 0
+                    anchor 0.2 0 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "motor_j3"
+                      minPosition -2.094
+                      maxPosition 2.094
+                      maxTorque 20
+                    }
+                    PositionSensor {
+                      name "sensor_j3"
+                    }
+                  ]
+                  endPoint Solid {
+                    translation 0.2 0 0
+                    name "forearm_link"
+                    children [
+                      # Elbow Joint Housing - Transverse Cylinder along local Y axis
+                      Transform {
+                        rotation 1 0 0 1.5708
+                        children [
+                          Shape {
+                            appearance PBRAppearance {
+                              baseColor 0.3 0.3 0.3
+                              roughness 0.75
+                            }
+                            geometry Cylinder {
+                              height 0.07
+                              radius 0.036
+                            }
+                          }
+                        ]
+                      }
+                      # Transition sphere at J3 center
+                      Transform {
+                        translation 0 0 0
+                        children [
+                          Shape {
+                            appearance PBRAppearance {
+                              baseColor 0.3 0.3 0.3
+                              roughness 0.75
+                            }
+                            geometry Sphere {
+                              radius 0.036
+                            }
+                          }
+                        ]
+                      }
+                      # Polished silver calota domed side cover caps at Y = 0.035 and Y = -0.035
+                      Transform {
+                        translation 0 0.035 0
+                        scale 1 0.15 1
+                        children [
+                          Shape {
+                            appearance PBRAppearance {
+                              baseColor 0.7 0.7 0.7
+                              metalness 0.9
+                              roughness 0.2
+                            }
+                            geometry Sphere {
+                              radius 0.037
+                            }
+                          }
+                        ]
+                      }
+                      Transform {
+                        translation 0 -0.035 0
+                        scale 1 0.15 1
+                        children [
+                          Shape {
+                            appearance PBRAppearance {
+                              baseColor 0.7 0.7 0.7
+                              metalness 0.9
+                              roughness 0.2
+                            }
+                            geometry Sphere {
+                              radius 0.037
+                            }
+                          }
+                        ]
+                      }
+                      # Forearm Tapered Cone 1 (elbow side pointing +X, hourglass part 1)
+                      Transform {
+                        translation 0.05 0 0
+                        rotation 0 0 1 -1.5708
+                        children [
+                          Shape {
+                            appearance PBRAppearance {
+                              baseColor 0.3 0.3 0.3
+                              roughness 0.75
+                            }
+                            geometry Cone {
+                              height 0.12
+                              bottomRadius 0.032
+                            }
+                          }
+                        ]
+                      }
+                      # Forearm Tapered Cone 2 (wrist side pointing -X, hourglass part 2)
+                      Transform {
+                        translation 0.15 0 0
+                        rotation 0 0 1 1.5708
+                        children [
+                          Shape {
+                            appearance PBRAppearance {
+                              baseColor 0.3 0.3 0.3
+                              roughness 0.75
+                            }
+                            geometry Cone {
+                              height 0.12
+                              bottomRadius 0.026
+                            }
+                          }
+                        ]
+                      }
+                      # Transition sphere at J4 wrist junction
+                      Transform {
+                        translation 0.2 0 0
+                        children [
+                          Shape {
+                            appearance PBRAppearance {
+                              baseColor 0.3 0.3 0.3
+                              roughness 0.75
+                            }
+                            geometry Sphere {
+                              radius 0.026
+                            }
+                          }
+                        ]
+                      }
+                                            # Joint 4: Torção do Punho / Wrist yaw (axis X_3 longitudinal)
+                      HingeJoint {
+                        jointParameters HingeJointParameters {
+                          axis 1 0 0
+                          anchor 0.2 0 0
+                        }
+                        device [
+                          RotationalMotor {
+                            name "motor_j4"
+                            minPosition -3.1415
+                            maxPosition 3.1415
+                            maxTorque 10
+                          }
+                          PositionSensor {
+                            name "sensor_j4"
+                          }
+                        ]
+                        endPoint Solid {
+                          translation 0.2 0 0
+                          name "wrist_yaw_link"
+                          children [
+                            # Wrist J4 center transition sphere
+                            Transform {
+                              translation 0 0 0
+                              children [
+                                Shape {
+                                  appearance PBRAppearance {
+                                    baseColor 0.3 0.3 0.3
+                                    roughness 0.75
+                                  }
+                                  geometry Sphere {
+                                    radius 0.028
+                                  }
+                                }
+                              ]
+                            }
+                            # Wrist Roll twist housing (cylinder along longitudinal X axis, behind center)
+                            Transform {
+                              translation -0.025 0 0
+                              rotation 0 0 1 1.5708
+                              children [
+                                Shape {
+                                  appearance PBRAppearance {
+                                    baseColor 0.3 0.3 0.3
+                                    roughness 0.75
+                                  }
+                                  geometry Cylinder {
+                                    height 0.05
+                                    radius 0.026
+                                  }
+                                }
+                              ]
+                            }
+                            # Polished silver rotary interface joint ring (behind center)
+                            Transform {
+                              translation -0.05 0 0
+                              rotation 0 0 1 1.5708
+                              children [
+                                Shape {
+                                  appearance PBRAppearance {
+                                    baseColor 0.7 0.7 0.7
+                                    metalness 0.9
+                                    roughness 0.2
+                                  }
+                                  geometry Cylinder {
+                                    height 0.004
+                                    radius 0.027
+                                  }
+                                }
+                              ]
+                            }
+                            # Interlocking Yoke Arm 1 (structural embrace J5 side 1)
+                            Transform {
+                              translation -0.01 0.018 0
+                              children [
+                                Shape {
+                                  appearance PBRAppearance {
+                                    baseColor 0.3 0.3 0.3
+                                    roughness 0.75
+                                  }
+                                  geometry Box {
+                                    size 0.02 0.005 0.02
+                                  }
+                                }
+                              ]
+                            }
+                            # Interlocking Yoke Arm 2 (structural embrace J5 side 2)
+                            Transform {
+                              translation -0.01 -0.018 0
+                              children [
+                                Shape {
+                                  appearance PBRAppearance {
+                                    baseColor 0.3 0.3 0.3
+                                    roughness 0.75
+                                  }
+                                  geometry Box {
+                                    size 0.02 0.005 0.02
+                                  }
+                                }
+                              ]
+                            }
+                            
+                            # Joint 5: Flexão do Punho / Wrist pitch (axis Y_4 horizontal)
+                            HingeJoint {
+                              jointParameters HingeJointParameters {
+                                axis 0 -1 0
+                                anchor 0 0 0
+                              }
+                              device [
+                                RotationalMotor {
+                                  name "motor_j5"
+                                  minPosition -1.5708
+                                  maxPosition 1.5708
+                                  maxTorque 10
+                                }
+                                PositionSensor {
+                                  name "sensor_j5"
+                                }
+                              ]
+                              endPoint Solid {
+                                name "wrist_pitch_link"
+                                children [
+                                  # Wrist Pitch Joint Housing - Transverse Cylinder along Y axis
+                                  Transform {
+                                    rotation 1 0 0 1.5708
+                                    children [
+                                      Shape {
+                                        appearance PBRAppearance {
+                                          baseColor 0.3 0.3 0.3
+                                          roughness 0.75
+                                        }
+                                        geometry Cylinder {
+                                          height 0.035
+                                          radius 0.022
+                                        }
+                                      }
+                                    ]
+                                  }
+                                  # Transition sphere at J5 center
+                                  Transform {
+                                    translation 0 0 0
+                                    children [
+                                      Shape {
+                                        appearance PBRAppearance {
+                                          baseColor 0.3 0.3 0.3
+                                          roughness 0.75
+                                        }
+                                        geometry Sphere {
+                                          radius 0.023
+                                        }
+                                      }
+                                    ]
+                                  }
+                                  # Polished silver calota caps on J5 Y-axis sides
+                                  Transform {
+                                    translation 0 0.018 0
+                                    scale 1 0.15 1
+                                    children [
+                                      Shape {
+                                        appearance PBRAppearance {
+                                          baseColor 0.7 0.7 0.7
+                                          metalness 0.9
+                                          roughness 0.2
+                                        }
+                                        geometry Sphere {
+                                          radius 0.023
+                                        }
+                                      }
+                                    ]
+                                  }
+                                  Transform {
+                                    translation 0 -0.018 0
+                                    scale 1 0.15 1
+                                    children [
+                                      Shape {
+                                        appearance PBRAppearance {
+                                          baseColor 0.7 0.7 0.7
+                                          metalness 0.9
+                                          roughness 0.2
+                                        }
+                                        geometry Sphere {
+                                          radius 0.023
+                                        }
+                                      }
+                                    ]
+                                  }
+                                  # Forward extension cylinder along local X axis
+                                  Transform {
+                                    translation 0.0175 0 0
+                                    rotation 0 0 1 1.5708
+                                    children [
+                                      Shape {
+                                        appearance PBRAppearance {
+                                          baseColor 0.3 0.3 0.3
+                                          roughness 0.75
+                                        }
+                                        geometry Cylinder {
+                                          height 0.035
+                                          radius 0.02
+                                        }
+                                      }
+                                    ]
+                                  }
+                                  
+                                  # Joint 6: Rotação da Flange / Tool roll (axis X_5 longitudinal)
+                                  HingeJoint {
+                                    jointParameters HingeJointParameters {
+                                      axis 1 0 0
+                                      anchor 0 0 0
+                                    }
+                                    device [
+                                      RotationalMotor {
+                                        name "motor_j6"
+                                        minPosition -6.283
+                                        maxPosition 6.283
+                                        maxTorque 5
+                                      }
+                                      PositionSensor {
+                                        name "sensor_j6"
+                                      }
+                                    ]
+                                    endPoint Solid {
+                                      name "gripper_link"
+                                      children [
+                                        # Connecting shaft cylinder (L6 offset connection)
+                                        Transform {
+                                          translation 0.035 0 0
+                                          rotation 0 1 0 1.5708
+                                          children [
+                                            Shape {
+                                              appearance PBRAppearance {
+                                                baseColor 0.3 0.3 0.3
+                                                roughness 0.75
+                                              }
+                                              geometry Cylinder {
+                                                height 0.07
+                                                radius 0.016
+                                              }
+                                            }
+                                          ]
+                                        }
+                                        # Tool Flange Disk (L6 = 80mm along X axis relative to J5) - Polished silver flat disk
+                                        # Total J5 to TCP is 80mm
+                                        Transform {
+                                          translation 0.075 0 0
+                                          rotation 0 1 0 1.5708
+                                          children [
+                                            Shape {
+                                              appearance PBRAppearance {
+                                                baseColor 0.7 0.7 0.7
+                                                metalness 0.9
+                                                roughness 0.2
+                                              }
+                                              geometry Cylinder {
+                                                height 0.006
+                                                radius 0.032
+                                              }
+                                            }
+                                          ]
+                                        }
+                                        # Concentric bolt hole 1
+                                        Transform {
+                                          translation 0.078 0.018 0
+                                          rotation 0 1 0 1.5708
+                                          children [
+                                            Shape {
+                                              appearance PBRAppearance {
+                                                baseColor 0.15 0.15 0.15
+                                                roughness 0.8
+                                              }
+                                              geometry Cylinder {
+                                                height 0.001
+                                                radius 0.0025
+                                              }
+                                            }
+                                          ]
+                                        }
+                                        # Concentric bolt hole 2
+                                        Transform {
+                                          translation 0.078 -0.018 0
+                                          rotation 0 1 0 1.5708
+                                          children [
+                                            Shape {
+                                              appearance PBRAppearance {
+                                                baseColor 0.15 0.15 0.15
+                                                roughness 0.8
+                                              }
+                                              geometry Cylinder {
+                                                height 0.001
+                                                radius 0.0025
+                                              }
+                                            }
+                                          ]
+                                        }
+                                        # Concentric bolt hole 3
+                                        Transform {
+                                          translation 0.078 0 0.018
+                                          rotation 0 1 0 1.5708
+                                          children [
+                                            Shape {
+                                              appearance PBRAppearance {
+                                                baseColor 0.15 0.15 0.15
+                                                roughness 0.8
+                                              }
+                                              geometry Cylinder {
+                                                height 0.001
+                                                radius 0.0025
+                                              }
+                                            }
+                                          ]
+                                        }
+                                        # Concentric bolt hole 4
+                                        Transform {
+                                          translation 0.078 0 -0.018
+                                          rotation 0 1 0 1.5708
+                                          children [
+                                            Shape {
+                                              appearance PBRAppearance {
+                                                baseColor 0.15 0.15 0.15
+                                                roughness 0.8
+                                              }
+                                              geometry Cylinder {
+                                                height 0.001
+                                                radius 0.0025
+                                              }
+                                            }
+                                          ]
+                                        }
+                                        # Tiny reference TCP (Tool Center Point) virtual sphere
+                                        Transform {
+                                          translation 0.08 0 0
+                                          children [
+                                            Shape {
+                                              appearance PBRAppearance {
+                                                baseColor 0.9 0.9 0.0
+                                                transparency 0.5
+                                              }
+                                              geometry Sphere {
+                                                radius 0.002
+                                              }
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
